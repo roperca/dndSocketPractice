@@ -1,4 +1,5 @@
 #import socket module
+from random import randint
 from socket import *
 import sys # In order to terminate the program
 """
@@ -35,12 +36,27 @@ while True:
 
         #print(f"Requested file: {filename}") # Debug print to see the filename
 
-        f = open(filename[1:])
-        outputdata = f.read().encode('utf-8') # Read file contents and encode
+        #f = open(filename[1:])
+        #outputdata = f.read().encode('utf-8') # Read file contents and encode
 
         #print(f"File contents: {outputdata}") # Debug print to see the file content
-        f.close()
-
+        #f.close()
+        die=input("Choose die to roll")
+        if die is "d4":
+            result=randint(1,4)
+        if die is "d6":
+            result=randint(1,6)
+        if die is "d8":
+            result=randint(1,8)
+        if die is "d10":
+            result=randint(1,10)
+        if die is "d12":
+            result=randint(1,12)
+        if die is "d20":
+            result=randint(1,20)
+        if die is "d100":
+            result=randint(1,100)
+        
         #Send one HTTP header line into socket
         #Fill in start
         connectionSocket.send("HTTP/1.1 200 OK\r\n".encode())
