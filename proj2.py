@@ -1,94 +1,58 @@
-#import socket module
+import socket
 from random import randint
-from socket import *
-import sys # In order to terminate the program
-"""
-Web Server by Camryn Roper
-this code is intended to be a very simple webserver. the goal is to understand how
-webservers and tcp protocalls work.
-Important Variables
-serverSocket - the socket connected to the server
-connectionSocket - the socket connected to the client
-outputData - used to store the contents of the HTML file
-other variables are self explanitory
-"""
-serverSocket = socket(AF_INET, SOCK_STREAM)
-#Prepare a server socket
-#Fill in start
-serverSocket.bind(('0.0.0.0', 6789)) #binds server to a particular host and any IP address
-#TODO get ip address for this server and the helloworld.html webpage
-serverSocket.listen(1) #listen for incoming connections
-#number indicates queue size
-#Fill in end
-while True:
-    #Establish the connection
-    print('Ready to serve...\n')
-    connectionSocket, addr = serverSocket.accept() #Fill in start #Fill in end
-    #above is a function that waits for a client to connect
+
+def roll_dice(die):
+    """
+    Helper function to roll a die based on its type (e.g., 'd4', 'd6').
+    """
+    if not die.startswith('d') or not die[1:].isdigit():
+        return None, "Invalid dice format. Use 'd4', 'd6', etc."
+    
+    sides = int(die[1:])
+    if sides < 1:
+        return None, "Dice must have at least 1 side."
+    
+    return randint(1, sides), None
+
+def send_to_server(host, port, message):
+    """
+    Sends a message to another server.
+    """
     try:
-        message = connectionSocket.recv(1024).decode('utf-8') #Fill in start #Fill in end
-        # .recv prepares 1kb of memory for client to use(we can get more memory later if we need it)
-        # .decode turns data human readable using utf-8 protocol
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+            client_socket.connect((host, port))
+            client_socket.sendall(message.encode('utf-8'))
+            response = client_socket.recv(1024).decode('utf-8')
+        return response
+    except Exception as e:
+        return f"Error sending to server: {e}"
 
-        #print(f"Received request: {message}") # Debug print to see the request
+# Configuration
+NEXT_SERVER_HOST = '127.0.0.1'  # Replace with the IP of the next server
+NEXT_SERVER_PORT = 6790  # Replace with the port of the next server
 
-        filename = message.split()[1]
+# Main Program
+print("Type 'roll dX' to roll a die (e.g., 'roll d20') or 'quit' to exit.")
 
-        #print(f"Requested file: {filename}") # Debug print to see the filename
-
-        #f = open(filename[1:])
-        #outputdata = f.read().encode('utf-8') # Read file contents and encode
-
-        #print(f"File contents: {outputdata}") # Debug print to see the file content
-        #f.close()
-        die=input("Choose die to roll")
-        if die is "d4":
-            result=randint(1,4)
-        if die is "d6":
-            result=randint(1,6)
-        if die is "d8":
-            result=randint(1,8)
-        if die is "d10":
-            result=randint(1,10)
-        if die is "d12":
-            result=randint(1,12)
-        if die is "d20":
-            result=randint(1,20)
-        if die is "d100":
-            result=randint(1,100)
+while True:
+    user_input = input("> ").strip()
+    
+    if user_input.lower() == 'quit':
+        print("Exiting the program. Goodbye!")
+        break
+    
+    # Parse command
+    if user_input.lower().startswith("roll "):
+        die = user_input[5:].strip()  # Extract the dice type (e.g., 'd20')
+        result, error = roll_dice(die)
         
-        #Send one HTTP header line into socket
-        #Fill in start
-        connectionSocket.send("HTTP/1.1 200 OK\r\n".encode())
-        #assignment wasnt clear what version so i used http1.1
-        connectionSocket.send("Content-Type: text/html\r\n".encode())
-        connectionSocket.send("\r\n".encode()) # End of header section
-        #I grabed this from ChatGPT4o because that seemed the best way
-        #to make sure i got the header lines and protocals right
-        #Fill in end
-        #Send the content of the requested file to the client
-
-        connectionSocket.send(outputdata)#i replaced the loop with this bc i was having some issues
-        #edit was made at recomendation from chatGPT
-        connectionSocket.send("\r\n".encode())#blank line indicates end of content
-        connectionSocket.close()#close connection
-
-    except IOError:
-        #Send response message for file not found
-        #Fill in start
-
-        #print("File not found, sending 404...") # Debug print
-
-        connectionSocket.send("HTTP/1.1 404 Not Found\r\n".encode())
-        connectionSocket.send("Content-Type: text/html\r\n".encode())
-        connectionSocket.send("\r\n".encode())
-        connectionSocket.send("<html><body><h1>404 Not Found</h1></body></html>\r\n".encode())
-        #grabbed header protocal from ChatGPT4o
-        #Fill in end
-        #Close client socket
-        #Fill in start
-        connectionSocket.close()
-    #Fill in end
-
-serverSocket.close()
-sys.exit()#Terminate the program after sending the corresponding data
+        if error:
+            print(error)
+        else:
+            print(f"You rolled a {die}: {result}")
+            
+            # Send result to the next server
+            response = send_to_server(NEXT_SERVER_HOST, NEXT_SERVER_PORT, f"Rolled {die}: {result}")
+            print(f"Response from server: {response}")
+    else:
+        print("Invalid command. Use 'roll dX' or 'quit'.")
